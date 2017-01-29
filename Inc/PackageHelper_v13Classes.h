@@ -26,6 +26,7 @@ public:
     class AActor* TargetActor;
     INT BinaryArc;
     FStringNoInit FinalName;
+    DECLARE_FUNCTION(execFindImports);
     DECLARE_FUNCTION(execHasEmbeddedCode);
     DECLARE_FUNCTION(execIsInPackageMap);
     DECLARE_FUNCTION(execCloseBinaryLog);
@@ -45,6 +46,7 @@ public:
 
 #endif
 
+AUTOGENERATE_FUNCTION(APHActor,-1,execFindImports);
 AUTOGENERATE_FUNCTION(APHActor,-1,execHasEmbeddedCode);
 AUTOGENERATE_FUNCTION(APHActor,-1,execIsInPackageMap);
 AUTOGENERATE_FUNCTION(APHActor,-1,execCloseBinaryLog);

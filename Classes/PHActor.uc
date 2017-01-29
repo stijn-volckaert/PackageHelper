@@ -36,6 +36,7 @@ native function bool   LogBinary(string LogString);                  // Logstrin
 native function bool   CloseBinaryLog();                             // Close binary log
 native function bool   IsInPackageMap(string Package);               // Meh..
 native function bool   HasEmbeddedCode(string Mapname);              // Maps with embedded code have to be checked
+native function string FindImports(string ImportedFunction);         // Find all packages that import the specified function
 
 // =============================================================================
 // Touch ~ Used to set the reference to the targetactor
@@ -53,7 +54,9 @@ function string GetItemName(string Message)
     local bool bResult;
     local string OldName, NewName;
 
-    switch(CAPS(Message))
+    Message = CAPS(Message);
+
+    switch(Message)
     {
         // Retrieve ServerActors/ServerPackages list from UGameEngine and
         // store them into the ServerActors/ServerPackages array in TargetActor
@@ -99,7 +102,8 @@ function string GetItemName(string Message)
                 bResult = IsInPackageMap(Mid(Message,8));
             else if (Left(Message, 15) == "HASEMBEDDEDCODE")
                 bResult = HasEmbeddedCode(Mid(Message, 16));
-
+            else if (Left(Message, 11) == "FINDIMPORTS")
+                return FindImports(Mid(Message, 12));
             break;
     }
 

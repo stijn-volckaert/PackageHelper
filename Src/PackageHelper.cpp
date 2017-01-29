@@ -512,6 +512,40 @@ void APHActor::execGetLoaderMD5(FFrame &Stack, RESULT_DECL)
 }
 
 /*-----------------------------------------------------------------------------
+	PHGetLinker - Get a ULinkerLoad object for the specified package
+-----------------------------------------------------------------------------*/
+ULinkerLoad* PHGetLinker(FString& PackageName)
+{
+	// UPackages don't have linkers but the objects contained within might have a linker
+	for (TObjectIterator<UPackage> PackageIterator; 
+		PackageIterator;
+		++PackageIterator)
+	{
+		FString Name = PackageIterator->GetPathName();
+		Name = Name.Caps();
+
+		if (PackageName == Name)
+		{
+			for (TObjectIterator<UObject> It; It; ++It)
+			{
+				if (It->IsIn(*PackageIterator) && It->GetLinker())
+				{
+					return It->GetLinker();
+				}
+			}
+		}
+	}
+
+	// No linker found => try to load
+	UObject::BeginLoad();
+	UPackage* InPackage = UObject::CreatePackage(NULL, *PackageName);
+	ULinkerLoad* Linker = UObject::GetPackageLinker(InPackage, NULL, LOAD_None, NULL, NULL);
+	UObject::EndLoad();
+
+	return Linker;
+}
+
+/*-----------------------------------------------------------------------------
 	execGetFileInfo - Calculates Filesize and MD5 hash for the given file
 -----------------------------------------------------------------------------*/
 void APHActor::execGetFileInfo(FFrame &Stack, RESULT_DECL)
@@ -536,42 +570,10 @@ void APHActor::execGetFileInfo(FFrame &Stack, RESULT_DECL)
 
 	// Try locating the packagelinker first and read from that
 	// Find the UPackage
-	for (TObjectIterator<UPackage> PackageIterator; PackageIterator; ++PackageIterator)
-	{
-		FString Name = PackageIterator->GetPathName();
-		Name = Name.Caps();
+	Linker = PHGetLinker(BaseName);
 
-		if (BaseName == Name)
-		{
-			// UPackages don't have linkers but the objects contained within might have a linker
-			for (TObjectIterator<UObject> It; It; ++It)
-			{
-				if (It->IsIn(*PackageIterator) && It->GetLinker())
-				{
-					Linker = It->GetLinker();
-					break;
-				}
-			}
-		}
-	}
-
-	// No linker found -> try force load using the engine
-	if (!Linker)
-	{
-		UObject::BeginLoad();
-		UPackage* InPackage = UObject::CreatePackage(NULL, *BaseName);
-		Linker = UObject::GetPackageLinker(InPackage, NULL, LOAD_None, NULL, NULL);
-		UObject::EndLoad();
-		if (Linker)
-		{
-			FullName = Linker->Filename;
-			//GLog->Logf(TEXT("Force Loaded %s"), *FullName);
-		}
-	}
-	else
-	{
+	if (Linker)
 		FullName = Linker->Filename;
-	}
 
 	if (FullName.Len() == 0)
 	{
@@ -854,7 +856,7 @@ void APHActor::execIsInPackageMap(FFrame& Stack, RESULT_DECL)
 		{
 			FPackageInfo& Pkg = XLevel->NetDriver->MasterMap->List(i);
 			//GLog->Logf(TEXT("Pkg: %s"), *Pkg.Linker->Filename);
-			if (Pkg.Linker->Filename.Caps().InStr(*PackageName.Caps()) != -1)
+			if (Pkg.Linker && Pkg.Linker->Filename.Caps().InStr(*PackageName.Caps()) != -1)
 			{
 				Found = 1;
 				*(UBOOL*)Result = 1;
@@ -925,6 +927,111 @@ void APHActor::execHasEmbeddedCode(FFrame& Stack, RESULT_DECL)
 	{
 		*(UBOOL*)Result = 0;
 	}
+	unguard;
+}
+
+/*-----------------------------------------------------------------------------
+	execFindImports
+-----------------------------------------------------------------------------*/
+void APHActor::execFindImports(FFrame& Stack, RESULT_DECL)
+{
+	guard(APHActor::execFindImports);
+	P_GET_STR(FullImport);
+	P_FINISH;
+
+	// Parse the imported function. The format should be 
+	// <Some Package>.<Some Class>.<Some Function>
+	FString ImportedPackage, ImportedClass, ImportedFunction;
+	if (FullImport.InStr(TEXT(".")) != 0)
+	{
+		ImportedPackage = FullImport.Left(FullImport.InStr(TEXT(".")));
+		FullImport = FullImport.Mid(FullImport.InStr(TEXT(".")) + 1);
+
+		if (FullImport.InStr(TEXT(".")) != 0)
+		{
+			ImportedClass = FullImport.Left(FullImport.InStr(TEXT(".")));
+			ImportedFunction = FullImport.Mid(FullImport.InStr(TEXT(".")) + 1);
+		}
+	}
+
+	if (ImportedPackage.Len() == 0 ||
+		ImportedClass.Len() == 0 ||
+		ImportedFunction.Len() == 0)
+	{
+		*(FString*)Result = TEXT("ERROR");
+		return;
+	}
+
+	FString Packages;
+
+	// Look only at packages in the packagemap
+	if (XLevel && 
+		XLevel->NetDriver && 
+		XLevel->NetDriver->MasterMap)
+	{
+		ULinkerLoad* Linker = NULL;
+		for (INT i = 0; i < XLevel->NetDriver->MasterMap->List.Num(); ++i)
+		{
+			FPackageInfo& Pkg = XLevel->NetDriver->MasterMap->List(i);
+
+			// these should all have linkers...
+			if (Pkg.Linker)
+			{
+				for (INT j = 0; j < Pkg.Linker->ImportMap.Num(); ++j)
+				{
+					FObjectImport& Import = Pkg.Linker->ImportMap(j);
+
+					// Check if the function matches
+					if (appStricmp(*Import.ObjectName, *ImportedFunction) ||
+						appStricmp(*Import.ClassName, TEXT("Function")) ||
+						appStricmp(*Import.ClassPackage, TEXT("Core")))
+						continue;
+
+					// Skip if the function is not imported from another package
+					if ((INT)Import.PackageIndex >= 0)
+						continue;
+					
+					FObjectImport& ClassImport = Pkg.Linker->ImportMap(-(INT)Import.PackageIndex - 1);
+
+					// Check if the class matches
+					if (appStricmp(*ClassImport.ObjectName, *ImportedClass) ||
+						appStricmp(*ClassImport.ClassName, TEXT("Class")) ||
+						appStricmp(*ClassImport.ClassPackage, TEXT("Core")))
+						continue;
+
+					// Skip if the class was not imported from another package
+					if ((INT)ClassImport.PackageIndex >= 0)
+						continue;
+
+					FObjectImport& PackageImport = Pkg.Linker->ImportMap(-(INT)ClassImport.PackageIndex - 1);
+
+					// Check if the package matches
+					if (appStricmp(*PackageImport.ObjectName, *ImportedPackage) ||
+						appStricmp(*PackageImport.ClassName, TEXT("Package")) ||
+						appStricmp(*PackageImport.ClassPackage, TEXT("Core")))
+						continue;
+
+					// Normalize the package name and add it to the list
+					FString BaseName;
+					if (Pkg.Linker->Filename.InStr(TEXT("/"), TRUE))
+						BaseName = Pkg.Linker->Filename.Mid(Pkg.Linker->Filename.InStr(TEXT("/"), TRUE) + 1);
+					if (BaseName.InStr(TEXT("\\"), TRUE))
+						BaseName = BaseName.Mid(BaseName.InStr(TEXT("\\"), TRUE) + 1);
+					Packages += BaseName + TEXT(";");
+
+					/*
+					GLog->Logf(TEXT("Found Import - In Package: %s - Import Info: %s.%s.%s"),
+						*Pkg.Linker->Filename,
+						*PackageImport.ObjectName,
+						*ClassImport.ObjectName,
+						*Import.ObjectName);
+					*/
+				}
+			}
+		}
+	}
+
+	*(FString*)Result = Packages;
 	unguard;
 }
 
