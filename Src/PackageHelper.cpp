@@ -1013,10 +1013,10 @@ void APHActor::execFindImports(FFrame& Stack, RESULT_DECL)
 
 					// Normalize the package name and add it to the list
 					FString BaseName;
-					if (Pkg.Linker->Filename.InStr(TEXT("/"), TRUE))
-						BaseName = Pkg.Linker->Filename.Mid(Pkg.Linker->Filename.InStr(TEXT("/"), TRUE) + 1);
-					if (BaseName.InStr(TEXT("\\"), TRUE))
-						BaseName = BaseName.Mid(BaseName.InStr(TEXT("\\"), TRUE) + 1);
+					if (Pkg.Linker->Filename.InStr(TEXT("/"), true))
+						BaseName = Pkg.Linker->Filename.Mid(Pkg.Linker->Filename.InStr(TEXT("/"), true) + 1);
+					if (BaseName.InStr(TEXT("\\"), true))
+						BaseName = BaseName.Mid(BaseName.InStr(TEXT("\\"), true) + 1);
 					Packages += BaseName + TEXT(";");
 
 					/*
