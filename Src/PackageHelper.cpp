@@ -589,7 +589,7 @@ void APHActor::execGetFileInfo(FFrame &Stack, RESULT_DECL)
 	{
 		DWORD	dwFileSize;
 		FString	MD5 = MD5Arc(FileArc, &dwFileSize);
-		*(FString*)Result = FString::Printf(TEXT("%s:::%d"), *MD5, dwFileSize);
+		*(FString*)Result = FString::Printf(TEXT("%s:::%d:::%s"), *MD5, dwFileSize, *FullName);
 		FileArc->Close();
 	}
 	else
