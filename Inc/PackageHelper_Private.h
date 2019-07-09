@@ -11,11 +11,11 @@
 /*-----------------------------------------------------------------------------
 	Package Definitions
 -----------------------------------------------------------------------------*/
-#define PACKAGE_NAME		PackageHelper_v13
-#define PACKAGE_NAME_CAPS	PACKAGEHELPER_V13
-#define PACKAGE_FNAME(name)	PACKAGEHELPER_V13_##name
-#define PACKAGE_LIBRARY		"PackageHelper_v13.dll"
-#define PACKAGE_CLASSES		"PackageHelper_v13Classes.h"
+#define PACKAGE_NAME		PackageHelper_v14
+#define PACKAGE_NAME_CAPS	PACKAGEHELPER_V14
+#define PACKAGE_FNAME(name)	PACKAGEHELPER_V14_##name
+#define PACKAGE_LIBRARY		"PackageHelper_v14.dll"
+#define PACKAGE_CLASSES		"PackageHelper_v14Classes.h"
 
 /*-----------------------------------------------------------------------------
 	Windows Definitions
@@ -23,7 +23,7 @@
 #ifndef __LINUX_X86__
 	#define CORE_API		DLL_IMPORT
 	#define ENGINE_API		DLL_IMPORT
-	#define PACKAGEHELPER_V13_API	DLL_EXPORT
+	#define PACKAGEHELPER_V14_API	DLL_EXPORT
 #endif
 
 /*-----------------------------------------------------------------------------
@@ -315,9 +315,12 @@ public:
 			GLog->Logf(TEXT("PackageHelper: File not found: %s - Trying case-insensitive search..."), Filename);
 			TArray<FString> Result = FindFiles(Filename, 0, 0);
 			if (Result.Num() > 0)
-			{
-			    GLog->Logf(TEXT("PackageHelper: Found: %s"), Filename);
-			    File = fopen(*Result(0), TCHAR_TO_ANSI(TEXT("rb")));
+			{			    
+				FString FullResult(Filename);
+				// FindFiles only returns the basename...
+				FullResult = FullResult.Left(FullResult.Len() - strlen(*Result(0))) + *Result(0);
+				GLog->Logf(TEXT("PackageHelper: Found: %s"), *FullResult);				
+			    File = fopen(TCHAR_TO_ANSI(*FullResult), TCHAR_TO_ANSI(TEXT("rb")));
 			}
 			if ( !File )
 			{

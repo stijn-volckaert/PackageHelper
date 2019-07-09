@@ -7,12 +7,12 @@
 #pragma pack (push,4)
 #endif
 
-#ifndef PACKAGEHELPER_V13_API
-#define PACKAGEHELPER_V13_API DLL_IMPORT
+#ifndef PACKAGEHELPER_V14_API
+#define PACKAGEHELPER_V14_API DLL_IMPORT
 #endif
 
 #ifndef NAMES_ONLY
-#define AUTOGENERATE_NAME(name) extern PACKAGEHELPER_V13_API FName PACKAGEHELPER_V13_##name;
+#define AUTOGENERATE_NAME(name) extern PACKAGEHELPER_V14_API FName PACKAGEHELPER_V14_##name;
 #define AUTOGENERATE_FUNCTION(cls,idx,name)
 #endif
 
@@ -20,7 +20,7 @@
 #ifndef NAMES_ONLY
 
 
-class PACKAGEHELPER_V13_API APHActor : public AActor
+class PACKAGEHELPER_V14_API APHActor : public AActor
 {
 public:
     class AActor* TargetActor;
@@ -40,7 +40,7 @@ public:
     DECLARE_FUNCTION(execSavePackageInfo);
     DECLARE_FUNCTION(execSetPackageInfo);
     DECLARE_FUNCTION(execGetPackageInfo);
-    DECLARE_CLASS(APHActor,AActor,0,PackageHelper_v13)
+    DECLARE_CLASS(APHActor,AActor,0,PackageHelper_v14)
     NO_DEFAULT_CONSTRUCTOR(APHActor)
 };
 

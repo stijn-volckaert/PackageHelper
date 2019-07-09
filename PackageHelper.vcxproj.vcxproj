@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -58,7 +58,7 @@
       <MkTypLibCompatible>true</MkTypLibCompatible>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TargetEnvironment>Win32</TargetEnvironment>
-      <TypeLibraryName>.\Release/PackageHelper_v13.tlb</TypeLibraryName>
+      <TypeLibraryName>.\Release/PackageHelper.tlb</TypeLibraryName>
       <HeaderFileName />
     </Midl>
     <ClCompile>
@@ -71,7 +71,7 @@
       <StructMemberAlignment>4Bytes</StructMemberAlignment>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <TreatWChar_tAsBuiltInType>false</TreatWChar_tAsBuiltInType>
-      <PrecompiledHeaderOutputFile>.\Release/PackageHelper_v13.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile>.\Release/PackageHelper.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>.\Release/</AssemblerListingLocation>
       <ObjectFileName>.\Release/</ObjectFileName>
       <ProgramDataBaseFileName>.\Release/</ProgramDataBaseFileName>
@@ -87,11 +87,11 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>odbc32.lib;odbccp32.lib;../Core/Lib/core.lib;../Engine/Lib/engine.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>../System/PackageHelper_v13.dll</OutputFile>
+      <OutputFile>../System/PackageHelper_v14.dll</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention />
-      <ImportLibrary>.\Release/PackageHelper_v13.lib</ImportLibrary>
+      <ImportLibrary>.\Release/PackageHelper_v14.lib</ImportLibrary>
       <TargetMachine>MachineX86</TargetMachine>
       <FullProgramDatabaseFile>true</FullProgramDatabaseFile>
       <SubSystem>Windows</SubSystem>
@@ -103,7 +103,7 @@
       <MkTypLibCompatible>true</MkTypLibCompatible>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TargetEnvironment>Win32</TargetEnvironment>
-      <TypeLibraryName>.\Release/PackageHelper_v13.tlb</TypeLibraryName>
+      <TypeLibraryName>.\Release/PackageHelper.tlb</TypeLibraryName>
       <HeaderFileName>
       </HeaderFileName>
     </Midl>
@@ -117,7 +117,7 @@
       <StructMemberAlignment>4Bytes</StructMemberAlignment>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <TreatWChar_tAsBuiltInType>false</TreatWChar_tAsBuiltInType>
-      <PrecompiledHeaderOutputFile>.\Release/PackageHelper_v13.pch</PrecompiledHeaderOutputFile>
+      <PrecompiledHeaderOutputFile>.\Release/PackageHelper.pch</PrecompiledHeaderOutputFile>
       <AssemblerListingLocation>.\Release/</AssemblerListingLocation>
       <ObjectFileName>.\Release/</ObjectFileName>
       <ProgramDataBaseFileName>.\Release/</ProgramDataBaseFileName>
@@ -134,12 +134,12 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>odbc32.lib;odbccp32.lib;../Core/Lib/core.lib;../Engine/Lib/engine.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>../System/PackageHelper_v13.dll</OutputFile>
+      <OutputFile>../System/PackageHelper_v14.dll</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
       </DataExecutionPrevention>
-      <ImportLibrary>.\Release/PackageHelper_v13.lib</ImportLibrary>
+      <ImportLibrary>.\Release/PackageHelper_v14.lib</ImportLibrary>
       <TargetMachine>MachineX86</TargetMachine>
       <FullProgramDatabaseFile>true</FullProgramDatabaseFile>
     </Link>
@@ -149,7 +149,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Inc\PackageHelper_Private.h" />
-    <ClInclude Include="Inc\PackageHelper_v13Classes.h" />
+    <ClInclude Include="Inc\PackageHelper_v14Classes.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
