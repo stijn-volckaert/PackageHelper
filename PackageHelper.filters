@@ -23,7 +23,7 @@
     <ClInclude Include="Inc\PackageHelper_Private.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Inc\PackageHelper_v14Classes.h">
+    <ClInclude Include="Inc\PackageHelper_v15Classes.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

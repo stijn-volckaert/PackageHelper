@@ -1,14 +1,10 @@
 // =============================================================================
-// PackageHelper v1.3 - (c) 2009 AnthraX
+// PackageHelper v1.5 - (c) 2009, 2020 Stijn "AnthraX" Volckaert
 // =============================================================================
-// The purpose of this mod is to provide reliable access to the serveractors and
-// serverpackages list without an extra dependency.
-// This means that:
-// * Unlike the ConsoleCommand("get Engine.GameEngine ServerPackages") command,
-// this method will NOT crash the server
-// * This package does NOT need to be in the EditPackages list of the mod that
-// uses PackageHelper's services. In fact, I strongly advise against it. I will
-// provide example code for anyone who wishes to use this package.
+// PackageHelper provides native utility functions to deal with UPackages and
+// package installation on Unreal Engine 1 servers. An example of how to use
+// PackageHelper can be found here:
+// https://github.com/stijn-volckaert/ACE_AutoConfig
 // =============================================================================
 class PHActor extends Actor
     native;
@@ -16,27 +12,115 @@ class PHActor extends Actor
 // =============================================================================
 // Variables
 // =============================================================================
-var Actor TargetActor;                                               // Reference to the actor that contains the ServerActors and ServerPackages Arrays.
-var const int BinaryArc;                                             // Internal FArchive ptr
-var const string FinalName;                                          // Internal Filename
+
+//
+// Reference to the actor that contains the ServerActors and ServerPackages 
+// Arrays. To set this reference, simply call PackageHelper.Touch(MyActor).
+// PackageHelper expects the TargetActor to declare the ServerActors and 
+// ServerPackages variables as arrays of 255 strings.
+//
+var Actor TargetActor;
+
+//
+// Internal C++ FArchive pointer. This was originally an int, but I changed the 
+// type to pointer in light of the UT v469 release
+//
+var const pointer BinaryArc;
+
+//
+// Internal filename
+//
+var const string FinalName;
 
 // =============================================================================
 // native functions
 // =============================================================================
-native function bool   GetPackageInfo(Actor TActor);                 // Gets the ServerPackages/ServerActors list from UGameEngine and stores them in TargetActor
-native function bool   SetPackageInfo(Actor TActor);                 // Gets the ServerPackages/ServerActors list from TargetActor and stores them in UGameEngine
-native function bool   SavePackageInfo();                            // Saves the UGameEngine configuration
-native function string GetLoaderMD5(string Loader);                  // Get the MD5 of a dll inside a loader package
-native function string GetFileInfo(string FileName);                 // Return: MD5:::FileSize
-native function bool   MoveDefsFile(string OldName, string NewName); // Move a definition file
-native function string LoadDefsFile(string FileName);                // Return: ObjectName
-native function bool   FileExists(string FileName);                  // Check if a file exists
-native function bool   OpenBinaryLog(string FileName);               // Open a binary log file
-native function bool   LogBinary(string LogString);                  // Logstring is in %03d format
-native function bool   CloseBinaryLog();                             // Close binary log
-native function bool   IsInPackageMap(string Package);               // Meh..
-native function bool   HasEmbeddedCode(string Mapname);              // Maps with embedded code have to be checked
-native function string FindImports(string ImportedFunction);         // Find all packages that import the specified function
+
+//
+// Gets the ServerPackages/ServerActors lists from the active UGameEngine and 
+// copies them into the TargetActor's ServerPackages/ServerActors arrays.
+//
+native function bool   GetPackageInfo(Actor TActor);
+
+//
+// Reads the TargetActor's ServerPackages/ServerActors arrays and stores them
+// into the active UGameEngine's ServerPackages/ServerActors lists
+// 
+native function bool   SetPackageInfo(Actor TActor);
+
+//
+// Saves the UGameEngine configuration to the ini file
+//
+native function bool   SavePackageInfo();
+
+//
+// Calclates the MD5 hash of a loader dll in an NPLoader package
+//
+native function string GetLoaderMD5(string Loader);
+
+//
+// Returns the MD5 hash and filesize of the specified file in 
+// "MD5Hash:::FileSize" format
+//
+native function string GetFileInfo(string FileName);
+
+//
+// Moves an ACE <=v0.8 definitions file
+//
+native function bool   MoveDefsFile(string OldName, string NewName);
+
+//
+// Decrypts an ACE <=v0.8 definitions file and returns the path name
+// of the decrypted class.
+//
+native function string LoadDefsFile(string FileName);
+
+//
+// Checks if the specified file exists
+//
+native function bool   FileExists(string FileName);
+
+//
+// Opens the specified file in binary mode
+//
+native function bool   OpenBinaryLog(string FileName);
+
+//
+// Writes to the currently open binary file. The output buffer is encoded
+// as a %03d string
+// 
+native function bool   LogBinary(string LogString);
+
+//
+// Closes the currently open binary file
+//
+native function bool   CloseBinaryLog();
+
+//
+// Checks if the specified UPackage is the Master packagemap of the Level's 
+// NetDriver.
+//
+native function bool   IsInPackageMap(string Package);
+
+//
+// Checks if there is any UScript code in the specified package 
+//
+native function bool   HasEmbeddedCode(string Mapname);
+
+//
+// Find all packages that import the specified function
+// Return is in "Package1;Package2;" format
+//
+native function string FindImports(string ImportedFunction);
+
+//
+// Find all packages containing calls to the specified numbered natives
+// Does not scan the excluded packages
+// NativeNums is in "123;468;124;" format
+// ExcludePackages is in "Package1;Package2;" format
+// Return is in "Package1;Package2;" format
+//
+native function string FindNativeCalls(string NativeNums, string ExcludePackages);
 
 // =============================================================================
 // Touch ~ Used to set the reference to the targetactor
@@ -52,7 +136,7 @@ function Touch(Actor TActor)
 function string GetItemName(string Message)
 {
     local bool bResult;
-    local string OldName, NewName;
+    local string OldName, NewName, Tmp;
 
     Message = CAPS(Message);
 
@@ -104,6 +188,14 @@ function string GetItemName(string Message)
                 bResult = HasEmbeddedCode(Mid(Message, 16));
             else if (Left(Message, 11) == "FINDIMPORTS")
                 return FindImports(Mid(Message, 12));
+            else if (Left(Message, 15) == "FINDNATIVECALLS")
+            {
+                Tmp = Mid(Message, 16);
+                if (InStr(Tmp, " ") != -1)
+                    return FindNativeCalls(Left(Tmp, InStr(Tmp, " ")), Mid(Tmp, InStr(Tmp, " ") + 1));
+                else
+                    return FindNativeCalls(Tmp, "");
+            }
             break;
     }
 

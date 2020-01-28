@@ -13,6 +13,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{E63556EB-ABB4-427C-9D04-B4EA9FDDDCBF}</ProjectGuid>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+    <ProjectName>PackageHelper_v15</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
@@ -23,7 +24,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v141_xp</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -87,14 +88,15 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>odbc32.lib;odbccp32.lib;../Core/Lib/core.lib;../Engine/Lib/engine.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>../System/PackageHelper_v14.dll</OutputFile>
+      <OutputFile>../System/PackageHelper_v15.dll</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention />
-      <ImportLibrary>.\Release/PackageHelper_v14.lib</ImportLibrary>
+      <ImportLibrary>.\Release/PackageHelper_v15.lib</ImportLibrary>
       <TargetMachine>MachineX86</TargetMachine>
       <FullProgramDatabaseFile>true</FullProgramDatabaseFile>
       <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -134,12 +136,12 @@
     </ResourceCompile>
     <Link>
       <AdditionalDependencies>odbc32.lib;odbccp32.lib;../Core/Lib/core.lib;../Engine/Lib/engine.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <OutputFile>../System/PackageHelper_v14.dll</OutputFile>
+      <OutputFile>../System/PackageHelper_v15.dll</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <RandomizedBaseAddress>false</RandomizedBaseAddress>
       <DataExecutionPrevention>
       </DataExecutionPrevention>
-      <ImportLibrary>.\Release/PackageHelper_v14.lib</ImportLibrary>
+      <ImportLibrary>.\Release/PackageHelper_v15.lib</ImportLibrary>
       <TargetMachine>MachineX86</TargetMachine>
       <FullProgramDatabaseFile>true</FullProgramDatabaseFile>
     </Link>
@@ -149,7 +151,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Inc\PackageHelper_Private.h" />
-    <ClInclude Include="Inc\PackageHelper_v14Classes.h" />
+    <ClInclude Include="Inc\PackageHelper_v15Classes.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

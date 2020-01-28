@@ -11,11 +11,11 @@
 /*-----------------------------------------------------------------------------
 	Package Definitions
 -----------------------------------------------------------------------------*/
-#define PACKAGE_NAME		PackageHelper_v14
-#define PACKAGE_NAME_CAPS	PACKAGEHELPER_V14
-#define PACKAGE_FNAME(name)	PACKAGEHELPER_V14_##name
-#define PACKAGE_LIBRARY		"PackageHelper_v14.dll"
-#define PACKAGE_CLASSES		"PackageHelper_v14Classes.h"
+#define PACKAGE_NAME		PackageHelper_v15
+#define PACKAGE_NAME_CAPS	PACKAGEHELPER_V15
+#define PACKAGE_FNAME(name)	PACKAGEHELPER_V15_##name
+#define PACKAGE_LIBRARY		"PackageHelper_v15.dll"
+#define PACKAGE_CLASSES		"PackageHelper_v15Classes.h"
 
 /*-----------------------------------------------------------------------------
 	Windows Definitions
@@ -23,7 +23,7 @@
 #ifndef __LINUX_X86__
 	#define CORE_API		DLL_IMPORT
 	#define ENGINE_API		DLL_IMPORT
-	#define PACKAGEHELPER_V14_API	DLL_EXPORT
+	#define PACKAGEHELPER_V15_API	DLL_EXPORT
 #endif
 
 /*-----------------------------------------------------------------------------
