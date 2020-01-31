@@ -946,7 +946,7 @@ void APHActor::execFindImports(FFrame& Stack, RESULT_DECL)
 /*-----------------------------------------------------------------------------
 	execFindNativeCalls
 -----------------------------------------------------------------------------*/
-static BYTE ReadExpr(TArray<BYTE>& ScriptBuffer, INT& Pos, TArray<INT>& Natives, UBOOL& FoundNative)
+static BYTE ReadExpr(TArray<BYTE>& ScriptBuffer, INT& Pos, TArray<INT>& Natives, INT& FoundNative)
 {
 	const BYTE Opcode = ScriptBuffer(Pos++);
 
@@ -964,7 +964,7 @@ static BYTE ReadExpr(TArray<BYTE>& ScriptBuffer, INT& Pos, TArray<INT>& Natives,
 			if (NativeNum == Natives(i))
 			{
 				//GLog->Logf(TEXT("PackageHelper: Found call to native func %d (%02x) at pos %d"), NativeNum, NativeNum, Pos);
-				FoundNative = 1;
+				FoundNative = NativeNum;
 				break;
 			}
 		}
@@ -979,7 +979,7 @@ static BYTE ReadExpr(TArray<BYTE>& ScriptBuffer, INT& Pos, TArray<INT>& Natives,
 			if (NativeNum == Natives(i))
 			{
 				//GLog->Logf(TEXT("PackageHelper: Found call to native func %d (%02x) at pos %d"), NativeNum, NativeNum, Pos);
-				FoundNative = 1;
+				FoundNative = NativeNum;
 				break;
 			}
 		}
@@ -1175,10 +1175,10 @@ static BYTE ReadExpr(TArray<BYTE>& ScriptBuffer, INT& Pos, TArray<INT>& Natives,
 	return Opcode;
 }
 
-static UBOOL ScanScriptBuffer(TArray<BYTE>& ScriptBuffer, TArray<INT> Natives)
+static INT ScanScriptBuffer(TArray<BYTE>& ScriptBuffer, TArray<INT> Natives)
 {
 	INT Pos = 0;
-	UBOOL FoundNative = 0;
+	INT FoundNative = 0;
 
 	while (Pos < ScriptBuffer.Num() - 1 && !FoundNative)
 		ReadExpr(ScriptBuffer, Pos, Natives, FoundNative);
@@ -1273,9 +1273,10 @@ void APHActor::execFindNativeCalls(FFrame& Stack, RESULT_DECL)
 					if (It->IsIn(Pkg.Parent) && It->Script.Num() > 0)
 					{
 						//GLog->Logf(TEXT("Scanning struct: %s - Scriptbuffer size: %d"), It->GetFullName(), It->Script.Num());
-						if (ScanScriptBuffer(It->Script, Natives))
+						const INT FoundNative = ScanScriptBuffer(It->Script, Natives);
+						if (FoundNative)
 						{
-							//GLog->Logf(TEXT("PackageHelper: Found a dangerous native call in this package: %s"), Pkg.Parent->GetFullName());
+							GLog->Logf(TEXT("PackageHelper: Found a dangerous call to native function %d in: %s"), FoundNative, It->GetFullName());
 							FoundDangerousNative = TRUE;
 							break;
 						}
