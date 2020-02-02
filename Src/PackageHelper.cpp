@@ -167,11 +167,6 @@ BYTE* DecryptArc(FArchive* FileArc, const PBYTE EncKey, INT EncKeyLength)
 FString FindDir(const FString& Filename)
 {
 	// try to find the file
-#ifdef __LINUX_X86__
-	if (PHFileManager == GFileManager)
-		PHFileManager = new PHFileManagerLinux;
-#endif
-	
 	TArray<FString> FoundFiles = PHFileManager->FindFiles(*Filename, 1, 0);
 
 	if (FoundFiles.Num() > 0)	
@@ -501,11 +496,6 @@ void APHActor::execGetFileInfo(FFrame &Stack, RESULT_DECL)
 	else
 		BaseName = FileName.Caps();
 
-#ifdef __LINUX_X86__
-	if (PHFileManager == GFileManager)
-		PHFileManager = new PHFileManagerLinux;
-#endif
-
 	// Try locating the packagelinker first and read from that
 	// Find the UPackage
 	ULinkerLoad* Linker = PHGetLinker(BaseName);
@@ -601,11 +591,6 @@ void APHActor::execFileExists(FFrame &Stack, RESULT_DECL)
 	P_GET_STR(FileName);
 	P_FINISH;
 
-#ifdef __LINUX_X86__
-	if (PHFileManager == GFileManager)
-		PHFileManager = new PHFileManagerLinux;
-#endif
-
 	FString Path = FindDir(FileName);
 	FileName     = Path + FileName;
 
@@ -622,11 +607,6 @@ void APHActor::execLoadDefsFile(FFrame &Stack, RESULT_DECL)
 	guard(APHActor::execLoadDefsFile);
 	P_GET_STR(FileName);
 	P_FINISH;
-
-#ifdef __LINUX_X86__
-	if (PHFileManager == GFileManager)
-		PHFileManager = new PHFileManagerLinux;
-#endif
 
 	if (FileName.Len() < 6 || FileName.Right(5) != TEXT(".DEFS"))
 	{
