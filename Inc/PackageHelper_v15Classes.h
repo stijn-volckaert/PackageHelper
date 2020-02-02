@@ -24,7 +24,8 @@ class PACKAGEHELPER_V15_API APHActor : public AActor
 {
 public:
     class AActor* TargetActor;
-    void* BinaryArc;
+    INT BinaryArcIndex;
+    BITFIELD BinaryArcOpened:1;
     FStringNoInit FinalName;
     DECLARE_FUNCTION(execFindNativeCalls);
     DECLARE_FUNCTION(execFindImports);
@@ -74,7 +75,7 @@ AUTOGENERATE_FUNCTION(APHActor,-1,execGetPackageInfo);
 
 #ifdef VERIFY_CLASS_SIZES
 VERIFY_CLASS_OFFSET_NODIE(A,PHActor,TargetActor)
-VERIFY_CLASS_OFFSET_NODIE(A,PHActor,BinaryArc)
+VERIFY_CLASS_OFFSET_NODIE(A,PHActor,BinaryArcIndex)
 VERIFY_CLASS_OFFSET_NODIE(A,PHActor,FinalName)
 VERIFY_CLASS_SIZE_NODIE(APHActor)
 #endif // VERIFY_CLASS_SIZES

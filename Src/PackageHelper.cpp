@@ -49,6 +49,7 @@ typedef CHAR*			PSTR;
 	Global Variables
 -----------------------------------------------------------------------------*/
 FFileManager*	PHFileManager = GFileManager;
+TArray<FArchive*> BinaryArcs;
 
 /*-----------------------------------------------------------------------------
 	MD5Arc - Calculates the MD5 hash of an FArchive
@@ -691,6 +692,42 @@ void APHActor::execLoadDefsFile(FFrame &Stack, RESULT_DECL)
 }
 
 /*-----------------------------------------------------------------------------
+	execCloseBinaryLog
+-----------------------------------------------------------------------------*/
+static UBOOL CloseBinaryLog(INT Index, FString& FinalName)
+{
+	UBOOL Success = 0;
+
+	FArchive* BinaryArc = BinaryArcs.IsValidIndex(Index) ?
+		BinaryArcs(Index) :
+		nullptr;
+
+	if (BinaryArc)
+	{
+		BinaryArc->Flush();
+		BinaryArc->Close();
+		const FString TempName = FinalName + TEXT(".temp");
+		Success = PHFileManager->Move(*FinalName, *TempName, 1, 1);
+	}
+
+	return Success;
+}
+
+void APHActor::execCloseBinaryLog(FFrame& Stack, RESULT_DECL)
+{
+	guard(APHActor::execCloseBinaryLog);
+	P_FINISH;
+
+	const UBOOL Success = BinaryArcOpened && CloseBinaryLog(BinaryArcIndex, FinalName);
+
+	if (Success)
+		BinaryArcOpened = 0;
+
+	*static_cast<UBOOL*>(Result) = Success;
+	unguard;
+}
+
+/*-----------------------------------------------------------------------------
 	execOpenBinaryLog
 -----------------------------------------------------------------------------*/
 void APHActor::execOpenBinaryLog(FFrame &Stack, RESULT_DECL)
@@ -699,34 +736,39 @@ void APHActor::execOpenBinaryLog(FFrame &Stack, RESULT_DECL)
 	P_GET_STR(FileName);
 	P_FINISH;
 
+	if (BinaryArcOpened)
+	{
+		if (CloseBinaryLog(BinaryArcIndex, FinalName))
+			BinaryArcOpened = 0;
+	}
+
 	const FString TempName = FileName + TEXT(".temp");
 	FinalName = FileName;
-	BinaryArc = PHFileManager->CreateFileWriter( *TempName );
+	FArchive* BinaryArc = PHFileManager->CreateFileWriter( *TempName );
+
+	// shove this into the BinaryArcs array
+	if (BinaryArc)
+	{
+		for (INT i = 0; i < BinaryArcs.Num(); ++i)
+		{
+			if (BinaryArcs(i) == nullptr)
+			{
+				BinaryArcs(i) = BinaryArc;
+				BinaryArcIndex = i;
+				BinaryArcOpened = 1;
+				break;
+			}
+		}
+
+		if (!BinaryArcOpened)
+		{
+			BinaryArcIndex = BinaryArcs.AddItem(BinaryArc);
+			BinaryArcOpened = (BinaryArcIndex == -1) ? 0 : 1;
+		}
+	}
 
 	*static_cast<UBOOL*>(Result) = (BinaryArc) ? 1 : 0;
 	
-	unguard;
-}
-
-/*-----------------------------------------------------------------------------
-	execCloseBinaryLog
------------------------------------------------------------------------------*/
-void APHActor::execCloseBinaryLog(FFrame &Stack, RESULT_DECL)
-{
-	guard(APHActor::execCloseBinaryLog);
-	P_FINISH;
-
-	UBOOL Success = 0;
-
-	if (BinaryArc)
-	{
-		static_cast<FArchive*>(BinaryArc)->Flush();
-		static_cast<FArchive*>(BinaryArc)->Close();
-		const FString TempName = FinalName + TEXT(".temp");
-		Success = PHFileManager->Move( *FinalName, *TempName, 1, 1 );
-	}
-
-	*static_cast<UBOOL*>(Result) = Success;
 	unguard;
 }
 
@@ -738,6 +780,10 @@ void APHActor::execLogBinary(FFrame &Stack, RESULT_DECL)
 	guard(APHActor::execLogBinary);
 	P_GET_STR(LogString);
 	P_FINISH;
+
+	FArchive* BinaryArc = (BinaryArcOpened && BinaryArcs.IsValidIndex(BinaryArcIndex)) ?
+		BinaryArcs(BinaryArcIndex) :
+		nullptr;
 
 	if (BinaryArc)
 	{

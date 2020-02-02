@@ -22,10 +22,10 @@ class PHActor extends Actor
 var Actor TargetActor;
 
 //
-// Internal C++ FArchive pointer. This was originally an int, but I changed the 
-// type to pointer in light of the UT v469 release
+// Index into an internal C++ TArray<FArchive*>
 //
-var const pointer BinaryArc;
+var const int BinaryArcIndex;
+var const bool BinaryArcOpened;
 
 //
 // Internal filename
