@@ -820,7 +820,8 @@ void APHActor::execIsInPackageMap(FFrame& Stack, RESULT_DECL)
 		{
 			FPackageInfo& Pkg = XLevel->NetDriver->MasterMap->List(i);
 			//GLog->Logf(TEXT("Pkg: %s"), *Pkg.Linker->Filename);
-			if (Pkg.Linker && Pkg.Linker->Filename.Caps().InStr(*PackageName.Caps()) != -1)
+			INT Index = Pkg.Linker->Filename.Caps().InStr(*(PackageName.Caps() + TEXT(".")));
+			if (Pkg.Linker && Index != -1)
 			{
 				Found = 1;
 				*static_cast<UBOOL*>(Result) = 1;
