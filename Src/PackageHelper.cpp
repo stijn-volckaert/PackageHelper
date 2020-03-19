@@ -227,14 +227,14 @@ void APHActor::execGetPackageInfo(FFrame &Stack, RESULT_DECL)
 	// Cancel if the arrays weren't found
 	if (!TargetServerPackagesProp || !TargetServerActorsProp)
 	{
-		GLog->Logf(TEXT("ERROR: Couldn't find the ServerActors/ServerPackages arrays in %s"), *FObjectFullName(TActor));
+		GLog->Logf(TEXT("ERROR: Couldn't find the ServerActors/ServerPackages arrays in %s"), TActor->GetFullName());
 		*static_cast<UBOOL*>(Result)=0;
 		return;
 	}
 
 	if (!GameEngineServerPackagesProp || !GameEngineServerActorsProp)
 	{
-		GLog->Logf(TEXT("ERROR: Couldn't find the ServerActors/ServerPackages arrays in %s"), *FObjectFullName(GameEngine));
+		GLog->Logf(TEXT("ERROR: Couldn't find the ServerActors/ServerPackages arrays in %s"), GameEngine->GetFullName());
 		*static_cast<UBOOL*>(Result) = 0;
 		return;
 	}
@@ -299,14 +299,14 @@ void APHActor::execSetPackageInfo(FFrame &Stack, RESULT_DECL)
 	// Cancel if the arrays weren't found
 	if (!TargetServerPackagesProp || !TargetServerActorsProp)
 	{
-		GLog->Logf(TEXT("ERROR: Couldn't find the ServerActors/ServerPackages arrays in %s"), *FObjectFullName(TActor));
+		GLog->Logf(TEXT("ERROR: Couldn't find the ServerActors/ServerPackages arrays in %s"), TActor->GetFullName());
 		*static_cast<UBOOL*>(Result)=0;
 		return;
 	}
 
 	if (!GameEngineServerPackagesProp || !GameEngineServerActorsProp)
 	{
-		GLog->Logf(TEXT("ERROR: Couldn't find the ServerActors/ServerPackages arrays in %s"), *FObjectFullName(GameEngine));
+		GLog->Logf(TEXT("ERROR: Couldn't find the ServerActors/ServerPackages arrays in %s"), GameEngine->GetFullName());
 		*static_cast<UBOOL*>(Result) = 0;
 		return;
 	}
@@ -1291,7 +1291,7 @@ void APHActor::execFindNativeCalls(FFrame& Stack, RESULT_DECL)
 				}
 
 				UObject::BeginLoad();
-				Pkg.Linker->LoadAllObjects();
+				UObject::LoadPackage(NULL, Pkg.Parent->GetName(), LOAD_NoFail);
 				UObject::EndLoad();
 
 				// Serialize all classes in this package
@@ -1303,7 +1303,7 @@ void APHActor::execFindNativeCalls(FFrame& Stack, RESULT_DECL)
 						const INT FoundNative = ScanScriptBuffer(It->Script, Natives);
 						if (FoundNative)
 						{
-							GLog->Logf(TEXT("PackageHelper: Found a dangerous call to native function %d in: %s"), FoundNative, *FObjectFullName(*It));
+							GLog->Logf(TEXT("PackageHelper: Found a dangerous call to native function %d in: %s"), FoundNative, (*It)->GetFullName());
 							FoundDangerousNative = TRUE;
 							break;
 						}
