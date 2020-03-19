@@ -219,10 +219,22 @@ void APHActor::execGetPackageInfo(FFrame &Stack, RESULT_DECL)
 	}
 
 	UGameEngine*	GameEngine						= Cast<UGameEngine>(XLevel->Engine);
-	UArrayProperty* GameEngineServerPackagesProp	= reinterpret_cast<UArrayProperty*>(GameEngine->FindObjectField(TEXT("ServerPackages")));
-	UArrayProperty* GameEngineServerActorsProp		= reinterpret_cast<UArrayProperty*>(GameEngine->FindObjectField(TEXT("ServerActors")));
-	UStrProperty*	TargetServerPackagesProp		= reinterpret_cast<UStrProperty*>(TActor->FindObjectField(TEXT("ServerPackages")));
-	UStrProperty*	TargetServerActorsProp			= reinterpret_cast<UStrProperty*>(TActor->FindObjectField(TEXT("ServerActors")));
+	UArrayProperty* GameEngineServerPackagesProp = nullptr, * GameEngineServerActorsProp = nullptr;
+	for (TFieldIterator<UArrayProperty> It(GameEngine->GetClass()); It; ++It)
+	{
+		if (appStricmp(*It->GetFName(), TEXT("ServerPackages")) == 0)
+			GameEngineServerPackagesProp = *It;
+		else if (appStricmp(*It->GetFName(), TEXT("ServerActors")) == 0)
+			GameEngineServerActorsProp = *It;
+	}
+	UStrProperty* TargetServerPackagesProp = nullptr, * TargetServerActorsProp = nullptr;
+	for (TFieldIterator<UStrProperty> It(TActor->GetClass()); It; ++It)
+	{
+		if (appStricmp(*It->GetFName(), TEXT("ServerPackages")) == 0)
+			TargetServerPackagesProp = *It;
+		else if (appStricmp(*It->GetFName(), TEXT("ServerActors")) == 0)
+			TargetServerActorsProp = *It;
+	}
 	
 	// Cancel if the arrays weren't found
 	if (!TargetServerPackagesProp || !TargetServerActorsProp)
@@ -291,10 +303,22 @@ void APHActor::execSetPackageInfo(FFrame &Stack, RESULT_DECL)
 	}
 
 	UGameEngine*	GameEngine						= Cast<UGameEngine>(XLevel->Engine);
-	UArrayProperty* GameEngineServerPackagesProp	= reinterpret_cast<UArrayProperty*>(GameEngine->FindObjectField(TEXT("ServerPackages")));
-	UArrayProperty* GameEngineServerActorsProp		= reinterpret_cast<UArrayProperty*>(GameEngine->FindObjectField(TEXT("ServerActors")));
-	UStrProperty*	TargetServerPackagesProp		= reinterpret_cast<UStrProperty*>(TActor->FindObjectField(TEXT("ServerPackages")));
-	UStrProperty*	TargetServerActorsProp			= reinterpret_cast<UStrProperty*>(TActor->FindObjectField(TEXT("ServerActors")));
+	UArrayProperty* GameEngineServerPackagesProp = nullptr, * GameEngineServerActorsProp = nullptr;
+	for (TFieldIterator<UArrayProperty> It(GameEngine->GetClass()); It; ++It)
+	{
+		if (appStricmp(*It->GetFName(), TEXT("ServerPackages")) == 0)
+			GameEngineServerPackagesProp = *It;
+		else if (appStricmp(*It->GetFName(), TEXT("ServerActors")) == 0)
+			GameEngineServerActorsProp = *It;
+	}
+	UStrProperty* TargetServerPackagesProp = nullptr, * TargetServerActorsProp = nullptr;
+	for (TFieldIterator<UStrProperty> It(TActor->GetClass()); It; ++It)
+	{
+		if (appStricmp(*It->GetFName(), TEXT("ServerPackages")) == 0)
+			TargetServerPackagesProp = *It;
+		else if (appStricmp(*It->GetFName(), TEXT("ServerActors")) == 0)
+			TargetServerActorsProp = *It;
+	}
 	
 	// Cancel if the arrays weren't found
 	if (!TargetServerPackagesProp || !TargetServerActorsProp)
