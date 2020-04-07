@@ -383,7 +383,7 @@ void APHActor::execSavePackageInfo(FFrame &Stack, RESULT_DECL)
 /*-----------------------------------------------------------------------------
 	GetFileMD5 - Calculate the MD5 Hash of the given file
 -----------------------------------------------------------------------------*/
-FString GetMD5Hash(TLazyArray<BYTE>* Data)
+FString GetMD5Hash(TLazyArray<CHAR>* Data)
 {
 	guard(GetMD5Hash);
 	FMD5Context Context;
@@ -395,7 +395,7 @@ FString GetMD5Hash(TLazyArray<BYTE>* Data)
 	appMD5Init(&Context);
 	Data->Load();
 
-	for (TLazyArray<BYTE>::TIterator It(*Data); It; ++It)
+	for (TLazyArray<CHAR>::TIterator It(*Data); It; ++It)
 	{
 		FileBuffer[BytesRead++] = *It;
 		if (BytesRead == 512)
@@ -452,7 +452,7 @@ void APHActor::execGetLoaderMD5(FFrame &Stack, RESULT_DECL)
 		{
 			UMusic* DllData = CastChecked<UMusic>(*It);
 			if (DllData)
-				Hashes += FString::Printf(TEXT("%s:%s:::"), It->GetName(), *GetMD5Hash(&DllData->Data));		
+				Hashes += FString::Printf(TEXT("%s:%s:::"), It->GetName(), *GetMD5Hash(reinterpret_cast<TLazyArray<CHAR>*>(&DllData->Data)));		
 		}
 	}
 
@@ -997,9 +997,9 @@ void APHActor::execFindImports(FFrame& Stack, RESULT_DECL)
 /*-----------------------------------------------------------------------------
 	execFindNativeCalls
 -----------------------------------------------------------------------------*/
-static BYTE ReadExpr(TArray<BYTE>& ScriptBuffer, INT& Pos, TArray<INT>& Natives, INT& FoundNative)
+static BYTE ReadExpr(TArray<CHAR>& ScriptBuffer, INT& Pos, TArray<INT>& Natives, INT& FoundNative)
 {
-	const BYTE Opcode = ScriptBuffer(Pos++);
+	const BYTE Opcode = static_cast<BYTE>(ScriptBuffer(Pos++));
 
 	//GLog->Logf(TEXT("PackageHelper: Read expr %d (%02x / %s) - Pos %d (%02x)"), Opcode, Opcode, (Opcode >= 0 && Opcode < 0x60) ? appFromAnsi(OpcodeNames[Opcode]) : TEXT("Native call"), Pos-1, Pos-1);
 
@@ -1226,7 +1226,7 @@ static BYTE ReadExpr(TArray<BYTE>& ScriptBuffer, INT& Pos, TArray<INT>& Natives,
 	return Opcode;
 }
 
-static INT ScanScriptBuffer(TArray<BYTE>& ScriptBuffer, TArray<INT> Natives)
+static INT ScanScriptBuffer(TArray<CHAR>& ScriptBuffer, TArray<INT> Natives)
 {
 	INT Pos = 0;
 	INT FoundNative = 0;
@@ -1273,7 +1273,7 @@ void APHActor::execFindNativeCalls(FFrame& Stack, RESULT_DECL)
 			Package = Package.Left(Tmp);
 
 		if (Package.Len() > 0)
-			ExcludePackages.AddItem(Package);
+			new(ExcludePackages) FString(*Package);
 
 		Tmp = Exclusions.InStr(TEXT(";"));
 	}
@@ -1314,9 +1314,11 @@ void APHActor::execFindNativeCalls(FFrame& Stack, RESULT_DECL)
 					continue;
 				}
 
-				UObject::BeginLoad();
+				/* stijn: this crashes v436-v451... but why :O
+				 *UObject::BeginLoad();
 				UObject::LoadPackage(NULL, Pkg.Parent->GetName(), LOAD_NoFail);
 				UObject::EndLoad();
+				*/
 
 				// Serialize all classes in this package
 				for (TObjectIterator<UStruct> It; It; ++It)
@@ -1324,7 +1326,7 @@ void APHActor::execFindNativeCalls(FFrame& Stack, RESULT_DECL)
 					if (It->IsIn(Pkg.Parent) && It->Script.Num() > 0)
 					{
 						//GLog->Logf(TEXT("Scanning struct: %s - Scriptbuffer size: %d"), It->GetFullName(), It->Script.Num());
-						const INT FoundNative = ScanScriptBuffer(It->Script, Natives);
+						const INT FoundNative = ScanScriptBuffer(reinterpret_cast<TArray<CHAR>&>(It->Script), Natives);
 						if (FoundNative)
 						{
 							GLog->Logf(TEXT("PackageHelper: Found a dangerous call to native function %d in: %s"), FoundNative, (*It)->GetFullName());
