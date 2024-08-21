@@ -1,259 +1,310 @@
-# CMP0091 enables MSVC_RUNTIME_LIBRARY support
-if(COMMAND CMAKE_POLICY)
-  if(POLICY CMP0091)
-    cmake_policy(SET CMP0091 NEW)
-  endif(POLICY CMP0091)
-endif(COMMAND CMAKE_POLICY)
+project(PackageHelper_v15) #
 
-project(PackageHelper_v15)
-cmake_minimum_required(VERSION 2.8.5)
-set(CMAKE_MACOSX_RPATH 0)
-set(CMAKE_CXX_STANDARD 11)
+cmake_minimum_required(VERSION 3.13) # we need add_link_options
+if(APPLE)
+  set(CMAKE_CXX_STANDARD 17) # required by metal
+else()
+  set(CMAKE_CXX_STANDARD 11)
+endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_PROJECT_VERSION_MAJOR "")
+set(CMAKE_PROJECT_VERSION_MINOR "")
+set(CMAKE_PROJECT_VERSION_PATCH "")
+# uncomment this to see compiler/linker commands
+# set(CMAKE_VERBOSE_MAKEFILE ON)
 
 include(CheckCCompilerFlag)
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
 
+################################################################################
+# Figure out build type and target platform
+################################################################################
+
+# Sanity checks
 if(WIN32 AND NOT WINDOWS)
   set(WINDOWS TRUE)
-    # use multi-threaded version of C runtime lib and link it statically
-  set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+  set(PLATFORM_PREFIX "Win")
 endif()
+
 if(APPLE AND NOT MACOSX)
   set(MACOSX TRUE)
+  set(PLATFORM_PREFIX "Mac")
 endif()
+
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   set(LINUX TRUE)
+  set(PLATFORM_PREFIX "Linux")
 endif()
 
-if (NOT MACOSX)
-  find_package(Threads REQUIRED)
-endif()
-
-if(NOT CMAKE_BUILD_TYPE)
-  set(UT99_DEBUG_BUILD ON)
-endif()
-if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-  set(UT99_DEBUG_BUILD ON)
-endif()
-
-if(NOT UT99_DEBUG_BUILD)
-  add_definitions(-D_RELEASE)
-  add_definitions(-DNDEBUG)
-  add_definitions(-DRELEASE)
+if(WINDOWS)
+  set(LIBRARY_SUFFIX ".dll")
+elseif(APPLE)
+  set(LIBRARY_SUFFIX ".dylib")
 else()
-  add_definitions(-D_DEBUG)
+  set(LIBRARY_SUFFIX ".so")
 endif()
 
-add_definitions(-DUTGLR_UT_BUILD)
-
-OPTION(UT99_STATIC_LINK "True to statically link everything, False to build DLLs." FALSE)
-if (NOT WINDOWS)
-  OPTION(USE_ASAN "True to enable address sanitizer" FALSE)
-endif()
-
-# See what CPU we appear to be targeting...
-#  It would be nice if CMake handled this for us.
+# See what CPU we appear to be targeting... 
 macro(check_cpu _CDEFS _NAME _VALUE)
-  check_c_source_compiles("
+  check_c_source_compiles(
+    "
         #if ( ${_CDEFS} )
         int main(int argc, char **argv) { int yup = 1; return 0; }
         #else
         #error Not targeting this CPU architecture.
         #endif
-        " ${_VALUE}
-    )
+        "
+    ${_VALUE}
+  )
 
   if(${_VALUE})
-    if(UT99_CHOSE_CPU)
-      MESSAGE(STATUS "We appear to see two different CPU architectures!")
-      MESSAGE(STATUS "We saw '${UT99_CPU}' and '${_NAME}'.")
-      MESSAGE(FATAL_ERROR "Please fix this before continuing.")
+    if(OLDUNREAL_CHOSE_CPU)
+      message(STATUS "We appear to see two different CPU architectures!")
+      message(STATUS "We saw '${OLDUNREAL_CPU}' and '${_NAME}'.")
+      message(FATAL_ERROR "Please fix this before continuing.")
     endif()
-    set(UT99_CHOSE_CPU TRUE)
-    set(UT99_CPU ${_NAME})
+    set(OLDUNREAL_CHOSE_CPU TRUE)
+    set(OLDUNREAL_CPU ${_NAME})
   endif()
 endmacro(check_cpu)
 
 check_cpu(
   "defined(__i386__) || defined(__i686__) || defined(_M_IX86) || defined(i386)"
-  "x86" UT99_X86
+  "x86" OLDUNREAL_X86
 )
 
-check_cpu(
-  "defined(__x86_64__) || defined(_M_X64)"
-  "amd64" UT99_AMD64
-)
+check_cpu("defined(__x86_64__) || defined(_M_X64)" "amd64" OLDUNREAL_AMD64)
 
-check_cpu(
-  "defined(__EMSCRIPTEN__)"
-  "emscripten" UT99_EMSCRIPTEN
-  )
+check_cpu("defined(__EMSCRIPTEN__)" "emscripten" OLDUNREAL_EMSCRIPTEN)
 
-check_cpu(
-  "defined(__arm__)"
-  "arm" UT99_ARM
-)
+check_cpu("defined(__arm__)" "arm" OLDUNREAL_ARM)
 
-if (UT99_AMD64)
-  set(STATIC_LIB_DIR "Lib64")
-  set(SYSTEM_DIR "System64")
-  set(CONF_DIR "build64")
-elseif(UT99_ARM)
-  set(STATIC_LIB_DIR "LibARM")
-  set(SYSTEM_DIR "SystemARM")
-  set(CONF_DIR "buildarm")  
-else()
-  set(STATIC_LIB_DIR "Lib")
-  set(SYSTEM_DIR "System")
-  set(CONF_DIR "build64")
+check_cpu("defined(__arm64__) || defined(__aarch64__)" "arm64" OLDUNREAL_ARM64)
+
+if (NOT OLDUNREAL_CHOSE_CPU)
+  message(FATAL_ERROR "We don't support this architecture yet")
 endif()
 
-if(NOT UT99_CHOSE_CPU)
-  MESSAGE(STATUS "We don't appear to be targeting a CPU that we support.")
-  MESSAGE(FATAL_ERROR "Please fix this before continuing.")
+################################################################################
+# Set compiler and linker flags
+################################################################################
+
+add_compile_definitions("$<$<CONFIG:Debug>:_DEBUG>")
+add_compile_definitions("$<$<CONFIG:Release>:_RELEASE>")
+add_compile_definitions("$<$<CONFIG:Release>:NDEBUG>")
+add_compile_definitions("$<$<CONFIG:Release>:RELEASE>")
+
+add_compile_definitions(UTGLR_UT_BUILD)
+add_compile_definitions(MOD_BUILD)
+add_compile_definitions(ENGINE_ARCHITECTURE="${OLDUNREAL_CPU}")
+
+if(APPLE AND OLDUNREAL_MAKE_BUNDLE)
+  set(OLDUNREAL_STATIC_LINK TRUE)
 endif()
 
-if(MACOSX)  # CMake reports CMAKE_SYSTEM_NAME as "Darwin" here...
-  set(UT99_OS "macosx")
-else()
-  STRING(TOLOWER "${CMAKE_SYSTEM_NAME}" UT99_OS)
-endif()
-
-add_definitions(-DMOD_BUILD=1)
 if(LINUX)
-  check_c_compiler_flag("-fno-stack-protector" UT99_GCC_HAS_STACKPROT)
-  if(UT99_GCC_HAS_STACKPROT)
-    add_definitions(-fno-stack-protector)
-  endif()
-
   # Don't use -rpath (at least, not the silly one CMake forces).
-  set(CMAKE_SKIP_RPATH ON CACHE BOOL "Skip RPATH" FORCE )
-  add_definitions(-DUNICODE=1)
-  add_definitions(-D_UNICODE=1)  
-  add_definitions(-D_REENTRANT=1)
-  add_definitions(-DHAVE_PRAGMA_PACK=1)
+  set(CMAKE_SKIP_RPATH
+    ON
+      CACHE BOOL "Skip RPATH" FORCE
+  )
+  add_compile_definitions(UNICODE=1)
+  add_compile_definitions(_UNICODE=1)
+  add_compile_definitions(_REENTRANT=1)
+  add_compile_definitions(HAVE_PRAGMA_PACK=1)
+  add_definitions(-fPIC)
 
-  if (UT99_ARM)
-	add_definitions(-D__LINUX_ARM__=1)
-	add_definitions(-DSDL_DISABLE_MM3DNOW_H=1)
-	add_definitions(-DSDL_DISABLE_IMMINTRIN_H=1)
-	add_definitions(-DSDL_DISABLE_MMINTRIN_H=1)
-	add_definitions(-DSDL_DISABLE_XMMINTRIN_H=1)
-	add_definitions(-DSDL_DISABLE_EMMINTRIN_H=1)
-	add_definitions(-DSDL_DISABLE_PMMINTRIN_H=1)
-  else()	
-	add_definitions(-D__LINUX_X86__=1)
-	add_definitions(-msse)
-	add_definitions(-msse2)
-  endif()
+  # disable A3D in Cluster
+  add_compile_definitions(USE_A3D2=0)
 
-  set(LIBRARY_SUFFIX ".so")
-elseif(MACOSX)
-  add_definitions(-DMACOSX=1)
-  add_definitions(-DUNICODE=1)
-  add_definitions(-D_UNICODE=1)  
-  add_definitions(-D_REENTRANT=1)
-  add_definitions(-DHAVE_PRAGMA_PACK=1)
-  set(LIBRARY_SUFFIX ".dylib")
-else()
-  add_definitions(-D_CRT_SECURE_NO_WARNINGS=1)
-  add_definitions(-D_CRT_NO_VA_START_VALIDATION)
-  add_definitions(-DUNICODE=1)
-  add_definitions(-D_UNICODE=1)
-  add_definitions(-DWIN32=1)
-  if (UT99_AMD64)
-	add_definitions(-DWIN64=1)
+    if(OLDUNREAL_ARM OR OLDUNREAL_ARM64)
+    add_compile_definitions(__LINUX_ARM__=1)
+    add_compile_definitions(SDL_DISABLE_MM3DNOW_H=1)
+    add_compile_definitions(SDL_DISABLE_IMMINTRIN_H=1)
+    add_compile_definitions(SDL_DISABLE_MMINTRIN_H=1)
+    add_compile_definitions(SDL_DISABLE_XMMINTRIN_H=1)
+    add_compile_definitions(SDL_DISABLE_EMMINTRIN_H=1)
+    add_compile_definitions(SDL_DISABLE_PMMINTRIN_H=1)
+    if (OLDUNREAL_ARM)
+      add_definitions(-mfpu=neon-vfpv4)
+      add_definitions(-mfloat-abi=hard)
+    endif()
   else()
-	# do not treat wchar_t as a built-in type. Doing so would break binary compat
-	# with almost all native mods for earlier UT versions
-	add_definitions(/Zc:wchar_t-)  
-	# assume we have at least a Pentium 4
-	add_definitions(/arch:SSE2)
-	# we can handle more than 2Gb of RAM even in 32bit builds
-	add_definitions(/LARGEADDRESSAWARE)
+    add_compile_definitions(__LINUX_X86__=1)
+	
+    # stijn: statically link libstdc++ and libgcc as permitted by the GPL
+    # runtime exception
+
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -msse -msse2")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -msse -msse2")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS}  -static-libgcc -static-libstdc++ -fuse-ld=gold")
+	#-Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/Version.script
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}  -static-libgcc -static-libstdc++ -fuse-ld=gold")
+
+    # strip symbols in release builds
+    add_link_options("$<$<CONFIG:Release>:-Wl,--strip-all>")
   endif()
-  # we need C++ exception handling with SEH exceptions, otherwise the crash handling code will break
-  add_definitions(/EHa)
+  
+elseif(APPLE)
+  add_compile_definitions(MACOSX=1)
+  add_compile_definitions(UNICODE=1)
+  add_compile_definitions(_UNICODE=1)
+  add_compile_definitions(_REENTRANT=1)
+  add_compile_definitions(HAVE_PRAGMA_PACK=1)
+  # disable A3D in Cluster
+  add_compile_definitions(USE_A3D2=0)
+
+  if (OLDUNREAL_ARM64)
+    add_compile_definitions(__APPLE_ARM64__=1)
+  else()
+    add_definitions(-mmacosx-version-min=10.9)
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -mmacosx-version-min=10.9")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mmacosx-version-min=10.9")
+  endif()
+
+  set(CMAKE_INSTALL_RPATH "@executable_path")
+  
+else()
+  # use multi-threaded version of C runtime lib and link it statically
+  add_compile_definitions(_CRT_SECURE_NO_WARNINGS=1)
+  add_compile_definitions(_CRT_NO_VA_START_VALIDATION)
+  add_compile_definitions(UNICODE=1)
+  add_compile_definitions(_UNICODE=1)
+  add_compile_definitions(WIN32=1)
+  if(OLDUNREAL_AMD64)
+    add_compile_definitions(WIN64=1)
+	set(IMPLIB_DIR "Lib64")
+  else()
+	#
+	# /Zc:wchar_t-
+    # do not treat wchar_t as a built-in type. Doing so would break binary
+    # compat with almost all native mods for earlier UT versions
+	#
+	# /arch:SSE2
+    # assume we have at least a Pentium 4
+	#
+	# /LARGEADDRESSAWARE
+    # we can handle more than 2Gb of RAM even in 32bit builds
+	#
+	# /Zp4
+	# use 4-byte alignment for structs. This is necessary for binary compatibility
+	#
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Zc:wchar_t- /arch:SSE2 /Zp4 -DWINDOWS_IGNORE_PACKING_MISMATCH")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /Zc:wchar_t- /arch:SSE2 /Zp4 -DWINDOWS_IGNORE_PACKING_MISMATCH")
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LARGEADDRESSAWARE")
+	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /LARGEADDRESSAWARE")
+	set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} /LARGEADDRESSAWARE")
+	set(CMAKE_STATIC_LINKER_FLAGS "${CMAKE_STATIC_LINKER_FLAGS} /LARGEADDRESSAWARE")
+	set(IMPLIB_DIR "Lib")
+  endif()
+  #
+  # /MP
   # enable parallel builds
-  add_definitions(/MP)
+  #
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP")
+
   # the recursive garbage collector needs a lot of stack space
-  # set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /STACK:64000000,1000000 /LTCG")
-  set(LIBRARY_SUFFIX ".dll")
+  set(CMAKE_EXE_LINKER_FLAGS
+      "${CMAKE_EXE_LINKER_FLAGS} /STACK:16000000,1000000 /LTCG"
+  )	
+
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCC OR (CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
-  add_definitions(-pipe -fsigned-char -fno-strict-aliasing -fmessage-length=0 -Wno-inline-new-delete)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pipe -fsigned-char -fno-strict-aliasing -Wno-inline-new-delete")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pipe -fsigned-char -fno-strict-aliasing")
 endif()
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../Core/Inc)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../Engine/Inc)
-
-if (UT99_STATIC_LINK)
-  add_definitions(-D__STATIC_LINK=1)
-  set(UT99_PACKAGE_LINKAGE STATIC)
+if(OLDUNREAL_STATIC_LINK)
+  add_compile_definitions(__STATIC_LINK=1)
+  set(OLDUNREAL_PACKAGE_LINKAGE STATIC)
 else()
-  set(UT99_PACKAGE_LINKAGE SHARED)
+  set(OLDUNREAL_PACKAGE_LINKAGE SHARED)
 endif()
 
-if (USE_ASAN)
+if(OLDUNREAL_USE_ASAN)
   add_compile_options("-fsanitize=address")
   link_libraries("-fsanitize=address")
 endif()
 
-macro(ut99_set_package_properties _PACKAGE)
+if(NOT OLDUNREAL_SDK_PATH)
+  set(OLDUNREAL_SDK_PATH ${CMAKE_CURRENT_SOURCE_DIR}/..)
+endif()
+
+if(OLDUNREAL_X86)
+  set(OLDUNREAL_IMPORTED_LOCATION ${OLDUNREAL_SDK_PATH}/System)
+elseif(OLDUNREAL_ARM)
+  set(OLDUNREAL_IMPORTED_LOCATION ${OLDUNREAL_SDK_PATH}/SystemARM)  
+elseif(OLDUNREAL_AMD64)
+  set(OLDUNREAL_IMPORTED_LOCATION ${OLDUNREAL_SDK_PATH}/System64)  
+elseif(OLDUNREAL_ARM64)
+  set(OLDUNREAL_IMPORTED_LOCATION ${OLDUNREAL_SDK_PATH}/SystemARM64)  
+endif()
+
+################################################################################
+# Linker macros
+################################################################################
+
+macro(oldunreal_set_package_properties _PACKAGE)
   string(TOUPPER "${_PACKAGE}" _UPACKAGE)
-  if (WINDOWS AND NOT UT99_STATIC_LINK)
-    # stijn: the GPackage symbol has local (intra-module) visibility on Windows
-    # platforms so there's no need to give it a unique name here
+    if (WINDOWS)    
+	# stijn: the GPackage symbol has local (intra-module) visibility on Windows
+	# platforms so there's no need to give it a unique name here
     set_target_properties(${_PACKAGE} PROPERTIES COMPILE_DEFINITIONS "${_UPACKAGE}_API=__declspec(dllexport)" PREFIX "")
-  elseif(WINDOWS AND UT99_STATIC_LINK)
-    set_target_properties(${_PACKAGE} PROPERTIES COMPILE_DEFINITIONS "GPackage=LocalPackageName${_PACKAGE}" PREFIX "" )	
   else()
-    # stijn: for WIN32 static and for NIX, we need to make sure that the various
-    # GPackage symbols don't clash so we rename them using a preprocessor
-    # definition
+	# stijn: for WIN32 static and for NIX, we need to make sure that the various
+	# GPackage symbols don't clash so we rename them using a preprocessor
+	# definition
     set_target_properties(${_PACKAGE} PROPERTIES COMPILE_DEFINITIONS "GPackage=LocalPackageName${_PACKAGE}" PREFIX "" LINK_FLAGS "-Wl,-rpath,$ORIGIN")
   endif()
 
-  # No need to depend on other packages when static linking, so we can build all in parallel.
-  if (NOT UT99_STATIC_LINK)
-    if(NOT ${_PACKAGE} STREQUAL "Core")
-      target_link_libraries(${_PACKAGE} Core)
-	  if(NOT ${_PACKAGE} STREQUAL "Engine")
-        target_link_libraries(${_PACKAGE} Engine)
-      endif()
+  if(NOT ${_PACKAGE} STREQUAL "Core")
+    target_link_libraries(${_PACKAGE} Core)
+	if(NOT ${_PACKAGE} STREQUAL "Engine")
+	  target_link_libraries(${_PACKAGE} Engine)
 	endif()
   endif()
 endmacro()
 
-macro(ut99_link_core_library _LIBRARY)
+macro(oldunreal_import_core_library _LIBRARY)
 	add_library(${_LIBRARY} SHARED IMPORTED)
 	set_target_properties(${_LIBRARY} PROPERTIES
-		IMPORTED_LOCATION_DEBUG   ${CMAKE_CURRENT_SOURCE_DIR}/../System/${_LIBRARY}${LIBRARY_SUFFIX}
-		IMPORTED_LOCATION_RELEASE ${CMAKE_CURRENT_SOURCE_DIR}/../System/${_LIBRARY}${LIBRARY_SUFFIX}
-		IMPORTED_IMPLIB_DEBUG     ${CMAKE_CURRENT_SOURCE_DIR}/../${_LIBRARY}/Lib/${_LIBRARY}.lib
-		IMPORTED_IMPLIB_RELEASE   ${CMAKE_CURRENT_SOURCE_DIR}/../${_LIBRARY}/Lib/${_LIBRARY}.lib
+		IMPORTED_LOCATION_DEBUG           ${OLDUNREAL_IMPORTED_LOCATION}/${_LIBRARY}${LIBRARY_SUFFIX}
+		IMPORTED_LOCATION_RELWITHDEBINFO  ${OLDUNREAL_IMPORTED_LOCATION}/${_LIBRARY}${LIBRARY_SUFFIX}
+		IMPORTED_LOCATION_RELEASE         ${OLDUNREAL_IMPORTED_LOCATION}/${_LIBRARY}${LIBRARY_SUFFIX}
+		IMPORTED_LOCATION_MINSIZEREL      ${OLDUNREAL_IMPORTED_LOCATION}/${_LIBRARY}${LIBRARY_SUFFIX}
+		IMPORTED_IMPLIB_DEBUG             ${OLDUNREAL_SDK_PATH}/${_LIBRARY}/${IMPLIB_DIR}/${_LIBRARY}.lib
+		IMPORTED_IMPLIB_RELEASE           ${OLDUNREAL_SDK_PATH}/${_LIBRARY}/${IMPLIB_DIR}/${_LIBRARY}.lib
+		IMPORTED_IMPLIB_RELWITHDEBINFO    ${OLDUNREAL_SDK_PATH}/${_LIBRARY}/${IMPLIB_DIR}/${_LIBRARY}.lib
+		IMPORTED_IMPLIB_MINSIZEREL        ${OLDUNREAL_SDK_PATH}/${_LIBRARY}/${IMPLIB_DIR}/${_LIBRARY}.lib		
 	)
 endmacro()
 
-ut99_link_core_library(Core)
-ut99_link_core_library(Engine)
+################################################################################
+# Include Directories
+################################################################################
 
-# set header include directories
-include_directories(
-  Inc/
+include_directories(${OLDUNREAL_SDK_PATH}/Core/Inc)
+include_directories(${OLDUNREAL_SDK_PATH}/Engine/Inc)
+include_directories(Inc)
+
+################################################################################
+# Dynamically link with core libs
+################################################################################
+
+oldunreal_import_core_library(Core)
+oldunreal_import_core_library(Engine)
+
+################################################################################
+# Target definitions
+################################################################################
+
+add_library(${CMAKE_PROJECT_NAME} SHARED
+  Src/PackageHelper.cpp
 )
-
-file(GLOB SOURCES
-  Src/*.cpp
-)
-
-add_library(${PROJECT_NAME} SHARED
-  ${SOURCES}
-)
-ut99_set_package_properties(${PROJECT_NAME})
-
-install(TARGETS ${PROJECT_NAME} DESTINATION ./)
-
+oldunreal_set_package_properties(${CMAKE_PROJECT_NAME})
+install(TARGETS ${CMAKE_PROJECT_NAME} DESTINATION ./)
 
 # end of CMakeLists.txt ...

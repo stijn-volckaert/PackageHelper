@@ -20,7 +20,7 @@
 /*-----------------------------------------------------------------------------
 	Windows Definitions
 -----------------------------------------------------------------------------*/
-#ifndef __LINUX_X86__
+#if !defined(__LINUX_X86__) && !defined(__LINUX_ARM__)
 	#define CORE_API		DLL_IMPORT
 	#define ENGINE_API		DLL_IMPORT
 	#define PACKAGEHELPER_V15_API	DLL_EXPORT
@@ -39,7 +39,7 @@
 #include "UnLinker.h"
 #include PACKAGE_CLASSES
 
-#ifdef __LINUX_X86__
+#if defined(__LINUX_X86__) || defined(__LINUX_ARM__)
 	#include <sys/stat.h>
 	#include <errno.h>
 	#include "FFileManagerLinux.h"
